@@ -70,8 +70,11 @@
 ;;   char res[1000];
       (with-foreign-object (*res :char 1000)
 ;;   err = rados_read(io, "greeting", res, 1000, 0);
-        (assert (>= (rados_read (mem-ref *io :pointer)
-                              "greeting" *res 1000 0)))
+        (let ((num-bytes (print (rados_read (mem-ref *io :pointer)
+                                     "greeting" *res 1000 0))))
+          (assert (>= num-bytes 0))
+          (print (loop for i below num-bytes
+                    collect (mem-aref *res :char i)))
 ;;   if (err < 0) {
 ;;     fprintf(stderr, "%s: failed to read from pool %s: %s\n", argv[0], poolname, strerror(-err));
 ;;     rados_ioctx_destroy(io);
@@ -82,7 +85,7 @@
 ;;   printf("read back %s\n\n", res);
 ;;   rados_ioctx_destroy(io);
 ;;   rados_shutdown(cluster);
-        (rados_ioctx_destroy (mem-ref *io :pointer))
-        (rados_shutdown (mem-ref *cluster :pointer))))))
+          (rados_ioctx_destroy (mem-ref *io :pointer))
+          (rados_shutdown (mem-ref *cluster :pointer)))))))
 ;; }
 
