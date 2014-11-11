@@ -1,5 +1,5 @@
 ;;;; package.lisp
 
 (defpackage #:cl-rados
-  (:use #:cl #:cffi))
+  (:use #:cl #:cffi #:flexi-streams))
 
