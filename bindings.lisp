@@ -4,7 +4,7 @@
 ;;; Do not make changes to this file unless you know what you are doing--modify
 ;;; the SWIG interface file instead.
 
-(in-package :cl-alsaseq)
+(in-package :cl-rados)
 
 
 
@@ -54,24 +54,24 @@
 ;; 	(LIBRADOS_OPERATION_IGNORE_OVERLAY #.32))
 
 (cffi:defcstruct rados_pool_stat_t
-	(num_bytes :pointer)
-	(num_kb :pointer)
-	(num_objects :pointer)
-	(num_object_clones :pointer)
-	(num_object_copies :pointer)
-	(num_objects_missing_on_primary :pointer)
-	(num_objects_unfound :pointer)
-	(num_objects_degraded :pointer)
-	(num_rd :pointer)
-	(num_rd_kb :pointer)
-	(num_wr :pointer)
-	(num_wr_kb :pointer))
+	(num_bytes :unsigned-long-long)
+	(num_kb :unsigned-long-long)
+	(num_objects :unsigned-long-long)
+	(num_object_clones :unsigned-long-long)
+	(num_object_copies :unsigned-long-long)
+	(num_objects_missing_on_primary :unsigned-long-long)
+	(num_objects_unfound :unsigned-long-long)
+	(num_objects_degraded :unsigned-long-long)
+	(num_rd :unsigned-long-long)
+	(num_rd_kb :unsigned-long-long)
+	(num_wr :unsigned-long-long)
+	(num_wr_kb :unsigned-long-long))
 
 (cffi:defcstruct rados_cluster_stat_t
-	(kb :pointer)
-	(kb_used :pointer)
-	(kb_avail :pointer)
-	(num_objects :pointer))
+	(kb :unsigned-long-long)
+	(kb_used :unsigned-long-long)
+	(kb_avail :unsigned-long-long)
+	(num_objects :unsigned-long-long))
 
 (cffi:defcfun ("rados_version" rados_version) :void
   (major :pointer)
@@ -86,7 +86,7 @@
   (pcluster :pointer)
   (clustername :string)
   (name :string)
-  (flags :pointer))
+  (flags :unsigned-long-long))
 
 (cffi:defcfun ("rados_create_with_context" rados_create_with_context) :int
   (cluster :pointer)
@@ -132,7 +132,7 @@
   (cluster :pointer)
   (option :string)
   (buf :string)
-  (len :pointer))
+  (len :unsigned-int))
 
 (cffi:defcfun ("rados_cluster_stat" rados_cluster_stat) :int
   (cluster :pointer)
@@ -141,7 +141,7 @@
 (cffi:defcfun ("rados_cluster_fsid" rados_cluster_fsid) :int
   (cluster :pointer)
   (buf :string)
-  (len :pointer))
+  (len :unsigned-int))
 
 (cffi:defcfun ("rados_wait_for_latest_osdmap" rados_wait_for_latest_osdmap) :int
   (cluster :pointer))
@@ -149,12 +149,12 @@
 (cffi:defcfun ("rados_pool_list" rados_pool_list) :int
   (cluster :pointer)
   (buf :string)
-  (len :pointer))
+  (len :unsigned-int))
 
 (cffi:defcfun ("rados_cct" rados_cct) :pointer
   (cluster :pointer))
 
-(cffi:defcfun ("rados_get_instance_id" rados_get_instance_id) :pointer
+(cffi:defcfun ("rados_get_instance_id" rados_get_instance_id) :unsigned-long-long
   (cluster :pointer))
 
 (cffi:defcfun ("rados_ioctx_create" rados_ioctx_create) :int
@@ -175,15 +175,15 @@
   (io :pointer)
   (stats :pointer))
 
-(cffi:defcfun ("rados_pool_lookup" rados_pool_lookup) :pointer
+(cffi:defcfun ("rados_pool_lookup" rados_pool_lookup) :long-long
   (cluster :pointer)
   (pool_name :string))
 
 (cffi:defcfun ("rados_pool_reverse_lookup" rados_pool_reverse_lookup) :int
   (cluster :pointer)
-  (id :pointer)
+  (id :long-long)
   (buf :string)
-  (maxlen :pointer))
+  (maxlen :unsigned-int))
 
 (cffi:defcfun ("rados_pool_create" rados_pool_create) :int
   (cluster :pointer)
@@ -192,18 +192,18 @@
 (cffi:defcfun ("rados_pool_create_with_auid" rados_pool_create_with_auid) :int
   (cluster :pointer)
   (pool_name :string)
-  (auid :pointer))
+  (auid :unsigned-long-long))
 
 (cffi:defcfun ("rados_pool_create_with_crush_rule" rados_pool_create_with_crush_rule) :int
   (cluster :pointer)
   (pool_name :string)
-  (crush_rule_num :pointer))
+  (crush_rule_num :unsigned-char))
 
 (cffi:defcfun ("rados_pool_create_with_all" rados_pool_create_with_all) :int
   (cluster :pointer)
   (pool_name :string)
-  (auid :pointer)
-  (crush_rule_num :pointer))
+  (auid :unsigned-long-long)
+  (crush_rule_num :unsigned-char))
 
 (cffi:defcfun ("rados_pool_delete" rados_pool_delete) :int
   (cluster :pointer)
@@ -211,7 +211,7 @@
 
 (cffi:defcfun ("rados_ioctx_pool_set_auid" rados_ioctx_pool_set_auid) :int
   (io :pointer)
-  (auid :pointer))
+  (auid :unsigned-long-long))
 
 (cffi:defcfun ("rados_ioctx_pool_get_auid" rados_ioctx_pool_get_auid) :int
   (io :pointer)
@@ -220,10 +220,10 @@
 (cffi:defcfun ("rados_ioctx_pool_requires_alignment" rados_ioctx_pool_requires_alignment) :int
   (io :pointer))
 
-(cffi:defcfun ("rados_ioctx_pool_required_alignment" rados_ioctx_pool_required_alignment) :pointer
+(cffi:defcfun ("rados_ioctx_pool_required_alignment" rados_ioctx_pool_required_alignment) :unsigned-long-long
   (io :pointer))
 
-(cffi:defcfun ("rados_ioctx_get_id" rados_ioctx_get_id) :pointer
+(cffi:defcfun ("rados_ioctx_get_id" rados_ioctx_get_id) :long-long
   (io :pointer))
 
 (cffi:defcfun ("rados_ioctx_get_pool_name" rados_ioctx_get_pool_name) :int
@@ -243,12 +243,12 @@
   (io :pointer)
   (ctx :pointer))
 
-(cffi:defcfun ("rados_objects_list_get_pg_hash_position" rados_objects_list_get_pg_hash_position) :pointer
+(cffi:defcfun ("rados_objects_list_get_pg_hash_position" rados_objects_list_get_pg_hash_position) :unsigned-int
   (ctx :pointer))
 
-(cffi:defcfun ("rados_objects_list_seek" rados_objects_list_seek) :pointer
+(cffi:defcfun ("rados_objects_list_seek" rados_objects_list_seek) :unsigned-int
   (ctx :pointer)
-  (pos :pointer))
+  (pos :unsigned-int))
 
 (cffi:defcfun ("rados_objects_list_next" rados_objects_list_next) :int
   (ctx :pointer)
@@ -278,7 +278,7 @@
 
 (cffi:defcfun ("rados_ioctx_snap_set_read" rados_ioctx_snap_set_read) :void
   (io :pointer)
-  (snap :pointer))
+  (snap :unsigned-long-long))
 
 (cffi:defcfun ("rados_ioctx_selfmanaged_snap_create" rados_ioctx_selfmanaged_snap_create) :int
   (io :pointer)
@@ -286,16 +286,16 @@
 
 (cffi:defcfun ("rados_ioctx_selfmanaged_snap_remove" rados_ioctx_selfmanaged_snap_remove) :int
   (io :pointer)
-  (snapid :pointer))
+  (snapid :unsigned-long-long))
 
 (cffi:defcfun ("rados_ioctx_selfmanaged_snap_rollback" rados_ioctx_selfmanaged_snap_rollback) :int
   (io :pointer)
   (oid :string)
-  (snapid :pointer))
+  (snapid :unsigned-long-long))
 
 (cffi:defcfun ("rados_ioctx_selfmanaged_snap_set_write_ctx" rados_ioctx_selfmanaged_snap_set_write_ctx) :int
   (io :pointer)
-  (seq :pointer)
+  (seq :unsigned-long-long)
   (snaps :pointer)
   (num_snaps :int))
 
@@ -311,51 +311,51 @@
 
 (cffi:defcfun ("rados_ioctx_snap_get_name" rados_ioctx_snap_get_name) :int
   (io :pointer)
-  (id :pointer)
+  (id :unsigned-long-long)
   (name :string)
   (maxlen :int))
 
 (cffi:defcfun ("rados_ioctx_snap_get_stamp" rados_ioctx_snap_get_stamp) :int
   (io :pointer)
-  (id :pointer)
+  (id :unsigned-long-long)
   (t_arg2 :pointer))
 
-(cffi:defcfun ("rados_get_last_version" rados_get_last_version) :pointer
+(cffi:defcfun ("rados_get_last_version" rados_get_last_version) :unsigned-long-long
   (io :pointer))
 
 (cffi:defcfun ("rados_write" rados_write) :int
   (io :pointer)
   (oid :string)
   (buf :string)
-  (len :pointer)
-  (off :pointer))
+  (len :unsigned-int)
+  (off :unsigned-long-long))
 
 (cffi:defcfun ("rados_write_full" rados_write_full) :int
   (io :pointer)
   (oid :string)
   (buf :string)
-  (len :pointer))
+  (len :unsigned-int))
 
 (cffi:defcfun ("rados_clone_range" rados_clone_range) :int
   (io :pointer)
   (dst :string)
-  (dst_off :pointer)
+  (dst_off :unsigned-long-long)
   (src :string)
-  (src_off :pointer)
-  (len :pointer))
+  (src_off :unsigned-long-long)
+  (len :unsigned-int))
 
 (cffi:defcfun ("rados_append" rados_append) :int
   (io :pointer)
   (oid :string)
   (buf :string)
-  (len :pointer))
+  (len :unsigned-int))
 
 (cffi:defcfun ("rados_read" rados_read) :int
   (io :pointer)
   (oid :string)
   (buf :string)
-  (len :pointer)
-  (off :pointer))
+  (len :unsigned-int)
+  (off :unsigned-long-long))
 
 (cffi:defcfun ("rados_remove" rados_remove) :int
   (io :pointer)
@@ -364,21 +364,21 @@
 (cffi:defcfun ("rados_trunc" rados_trunc) :int
   (io :pointer)
   (oid :string)
-  (size :pointer))
+  (size :unsigned-long-long))
 
 (cffi:defcfun ("rados_getxattr" rados_getxattr) :int
   (io :pointer)
   (o :string)
   (name :string)
   (buf :string)
-  (len :pointer))
+  (len :unsigned-int))
 
 (cffi:defcfun ("rados_setxattr" rados_setxattr) :int
   (io :pointer)
   (o :string)
   (name :string)
   (buf :string)
-  (len :pointer))
+  (len :unsigned-int))
 
 (cffi:defcfun ("rados_rmxattr" rados_rmxattr) :int
   (io :pointer)
@@ -418,19 +418,19 @@
   (io :pointer)
   (o :string)
   (cmdbuf :string)
-  (cmdbuflen :pointer))
+  (cmdbuflen :unsigned-int))
 
 (cffi:defcfun ("rados_tmap_put" rados_tmap_put) :int
   (io :pointer)
   (o :string)
   (buf :string)
-  (buflen :pointer))
+  (buflen :unsigned-int))
 
 (cffi:defcfun ("rados_tmap_get" rados_tmap_get) :int
   (io :pointer)
   (o :string)
   (buf :string)
-  (buflen :pointer))
+  (buflen :unsigned-int))
 
 (cffi:defcfun ("rados_exec" rados_exec) :int
   (io :pointer)
@@ -438,9 +438,9 @@
   (cls :string)
   (method :string)
   (in_buf :string)
-  (in_len :pointer)
+  (in_len :unsigned-int)
   (buf :string)
-  (out_len :pointer))
+  (out_len :unsigned-int))
 
 (cffi:defcfun ("rados_aio_create_completion" rados_aio_create_completion) :int
   (cb_arg :pointer)
@@ -483,22 +483,22 @@
   (oid :string)
   (completion :pointer)
   (buf :string)
-  (len :pointer)
-  (off :pointer))
+  (len :unsigned-int)
+  (off :unsigned-long-long))
 
 (cffi:defcfun ("rados_aio_append" rados_aio_append) :int
   (io :pointer)
   (oid :string)
   (completion :pointer)
   (buf :string)
-  (len :pointer))
+  (len :unsigned-int))
 
 (cffi:defcfun ("rados_aio_write_full" rados_aio_write_full) :int
   (io :pointer)
   (oid :string)
   (completion :pointer)
   (buf :string)
-  (len :pointer))
+  (len :unsigned-int))
 
 (cffi:defcfun ("rados_aio_remove" rados_aio_remove) :int
   (io :pointer)
@@ -510,8 +510,8 @@
   (oid :string)
   (completion :pointer)
   (buf :string)
-  (len :pointer)
-  (off :pointer))
+  (len :unsigned-int)
+  (off :unsigned-long-long))
 
 (cffi:defcfun ("rados_aio_flush" rados_aio_flush) :int
   (io :pointer))
@@ -530,7 +530,7 @@
 (cffi:defcfun ("rados_watch" rados_watch) :int
   (io :pointer)
   (o :string)
-  (ver :pointer)
+  (ver :unsigned-long-long)
   (handle :pointer)
   (watchcb :pointer)
   (arg :pointer))
@@ -538,20 +538,20 @@
 (cffi:defcfun ("rados_unwatch" rados_unwatch) :int
   (io :pointer)
   (o :string)
-  (handle :pointer))
+  (handle :unsigned-long-long))
 
 (cffi:defcfun ("rados_notify" rados_notify) :int
   (io :pointer)
   (o :string)
-  (ver :pointer)
+  (ver :unsigned-long-long)
   (buf :string)
   (buf_len :int))
 
 (cffi:defcfun ("rados_set_alloc_hint" rados_set_alloc_hint) :int
   (io :pointer)
   (o :string)
-  (expected_object_size :pointer)
-  (expected_write_size :pointer))
+  (expected_object_size :unsigned-long-long)
+  (expected_write_size :unsigned-long-long))
 
 (cffi:defcfun ("rados_create_write_op" rados_create_write_op) :pointer)
 
@@ -568,23 +568,23 @@
 (cffi:defcfun ("rados_write_op_cmpxattr" rados_write_op_cmpxattr) :void
   (write_op :pointer)
   (name :string)
-  (comparison_operator :pointer)
+  (comparison_operator :unsigned-char)
   (value :string)
-  (value_len :pointer))
+  (value_len :unsigned-int))
 
 (cffi:defcfun ("rados_write_op_omap_cmp" rados_write_op_omap_cmp) :void
   (write_op :pointer)
   (key :string)
-  (comparison_operator :pointer)
+  (comparison_operator :unsigned-char)
   (val :string)
-  (val_len :pointer)
+  (val_len :unsigned-int)
   (prval :pointer))
 
 (cffi:defcfun ("rados_write_op_setxattr" rados_write_op_setxattr) :void
   (write_op :pointer)
   (name :string)
   (value :string)
-  (value_len :pointer))
+  (value_len :unsigned-int))
 
 (cffi:defcfun ("rados_write_op_rmxattr" rados_write_op_rmxattr) :void
   (write_op :pointer)
@@ -598,37 +598,37 @@
 (cffi:defcfun ("rados_write_op_write" rados_write_op_write) :void
   (write_op :pointer)
   (buffer :string)
-  (len :pointer)
-  (offset :pointer))
+  (len :unsigned-int)
+  (offset :unsigned-long-long))
 
 (cffi:defcfun ("rados_write_op_write_full" rados_write_op_write_full) :void
   (write_op :pointer)
   (buffer :string)
-  (len :pointer))
+  (len :unsigned-int))
 
 (cffi:defcfun ("rados_write_op_append" rados_write_op_append) :void
   (write_op :pointer)
   (buffer :string)
-  (len :pointer))
+  (len :unsigned-int))
 
 (cffi:defcfun ("rados_write_op_remove" rados_write_op_remove) :void
   (write_op :pointer))
 
 (cffi:defcfun ("rados_write_op_truncate" rados_write_op_truncate) :void
   (write_op :pointer)
-  (offset :pointer))
+  (offset :unsigned-long-long))
 
 (cffi:defcfun ("rados_write_op_zero" rados_write_op_zero) :void
   (write_op :pointer)
-  (offset :pointer)
-  (len :pointer))
+  (offset :unsigned-long-long)
+  (len :unsigned-long-long))
 
 (cffi:defcfun ("rados_write_op_exec" rados_write_op_exec) :void
   (write_op :pointer)
   (cls :string)
   (method :string)
   (in_buf :string)
-  (in_len :pointer)
+  (in_len :unsigned-int)
   (prval :pointer))
 
 (cffi:defcfun ("rados_write_op_omap_set" rados_write_op_omap_set) :void
@@ -636,20 +636,20 @@
   (keys :pointer)
   (vals :pointer)
   (lens :pointer)
-  (num :pointer))
+  (num :unsigned-int))
 
 (cffi:defcfun ("rados_write_op_omap_rm_keys" rados_write_op_omap_rm_keys) :void
   (write_op :pointer)
   (keys :pointer)
-  (keys_len :pointer))
+  (keys_len :unsigned-int))
 
 (cffi:defcfun ("rados_write_op_omap_clear" rados_write_op_omap_clear) :void
   (write_op :pointer))
 
 (cffi:defcfun ("rados_write_op_set_alloc_hint" rados_write_op_set_alloc_hint) :void
   (write_op :pointer)
-  (expected_object_size :pointer)
-  (expected_write_size :pointer))
+  (expected_object_size :unsigned-long-long)
+  (expected_write_size :unsigned-long-long))
 
 (cffi:defcfun ("rados_write_op_operate" rados_write_op_operate) :int
   (write_op :pointer)
@@ -681,9 +681,9 @@
 (cffi:defcfun ("rados_read_op_cmpxattr" rados_read_op_cmpxattr) :void
   (read_op :pointer)
   (name :string)
-  (comparison_operator :pointer)
+  (comparison_operator :unsigned-char)
   (value :string)
-  (value_len :pointer))
+  (value_len :unsigned-int))
 
 (cffi:defcfun ("rados_read_op_getxattrs" rados_read_op_getxattrs) :void
   (read_op :pointer)
@@ -693,9 +693,9 @@
 (cffi:defcfun ("rados_read_op_omap_cmp" rados_read_op_omap_cmp) :void
   (read_op :pointer)
   (key :string)
-  (comparison_operator :pointer)
+  (comparison_operator :unsigned-char)
   (val :string)
-  (val_len :pointer)
+  (val_len :unsigned-int)
   (prval :pointer))
 
 (cffi:defcfun ("rados_read_op_stat" rados_read_op_stat) :void
@@ -706,8 +706,8 @@
 
 (cffi:defcfun ("rados_read_op_read" rados_read_op_read) :void
   (read_op :pointer)
-  (offset :pointer)
-  (len :pointer)
+  (offset :unsigned-long-long)
+  (len :unsigned-int)
   (buf :string)
   (bytes_read :pointer)
   (prval :pointer))
@@ -717,7 +717,7 @@
   (cls :string)
   (method :string)
   (in_buf :string)
-  (in_len :pointer)
+  (in_len :unsigned-int)
   (out_buf :pointer)
   (out_len :pointer)
   (prval :pointer))
@@ -727,9 +727,9 @@
   (cls :string)
   (method :string)
   (in_buf :string)
-  (in_len :pointer)
+  (in_len :unsigned-int)
   (out_buf :string)
-  (out_len :pointer)
+  (out_len :unsigned-int)
   (used_len :pointer)
   (prval :pointer))
 
@@ -737,21 +737,21 @@
   (read_op :pointer)
   (start_after :string)
   (filter_prefix :string)
-  (max_return :pointer)
+  (max_return :unsigned-long-long)
   (iter :pointer)
   (prval :pointer))
 
 (cffi:defcfun ("rados_read_op_omap_get_keys" rados_read_op_omap_get_keys) :void
   (read_op :pointer)
   (start_after :string)
-  (max_return :pointer)
+  (max_return :unsigned-long-long)
   (iter :pointer)
   (prval :pointer))
 
 (cffi:defcfun ("rados_read_op_omap_get_vals_by_keys" rados_read_op_omap_get_vals_by_keys) :void
   (read_op :pointer)
   (keys :pointer)
-  (keys_len :pointer)
+  (keys_len :unsigned-int)
   (iter :pointer)
   (prval :pointer))
 
@@ -775,7 +775,7 @@
   (cookie :string)
   (desc :string)
   (duration :pointer)
-  (flags :pointer))
+  (flags :unsigned-char))
 
 (cffi:defcfun ("rados_lock_shared" rados_lock_shared) :int
   (io :pointer)
@@ -785,7 +785,7 @@
   (tag :string)
   (desc :string)
   (duration :pointer)
-  (flags :pointer))
+  (flags :unsigned-char))
 
 (cffi:defcfun ("rados_unlock" rados_unlock) :int
   (io :pointer)
@@ -817,9 +817,9 @@
 (cffi:defcfun ("rados_mon_command" rados_mon_command) :int
   (cluster :pointer)
   (cmd :pointer)
-  (cmdlen :pointer)
+  (cmdlen :unsigned-int)
   (inbuf :string)
-  (inbuflen :pointer)
+  (inbuflen :unsigned-int)
   (outbuf :pointer)
   (outbuflen :pointer)
   (outs :pointer)
@@ -829,9 +829,9 @@
   (cluster :pointer)
   (name :string)
   (cmd :pointer)
-  (cmdlen :pointer)
+  (cmdlen :unsigned-int)
   (inbuf :string)
-  (inbuflen :pointer)
+  (inbuflen :unsigned-int)
   (outbuf :pointer)
   (outbuflen :pointer)
   (outs :pointer)
@@ -844,9 +844,9 @@
   (cluster :pointer)
   (osdid :int)
   (cmd :pointer)
-  (cmdlen :pointer)
+  (cmdlen :unsigned-int)
   (inbuf :string)
-  (inbuflen :pointer)
+  (inbuflen :unsigned-int)
   (outbuf :pointer)
   (outbuflen :pointer)
   (outs :pointer)
@@ -856,9 +856,9 @@
   (cluster :pointer)
   (pgstr :string)
   (cmd :pointer)
-  (cmdlen :pointer)
+  (cmdlen :unsigned-int)
   (inbuf :string)
-  (inbuflen :pointer)
+  (inbuflen :unsigned-int)
   (outbuf :pointer)
   (outbuflen :pointer)
   (outs :pointer)
@@ -869,5 +869,11 @@
   (level :string)
   (cb :pointer)
   (arg :pointer))
+
+(cffi:defcstruct obj_watch_t
+	(addr :pointer)
+	(watcher_id :long-long)
+	(cookie :unsigned-long-long)
+	(timeout_seconds :unsigned-int))
 
 
