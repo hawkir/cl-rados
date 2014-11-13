@@ -65,7 +65,7 @@
 
 (defun write-string-to-ceph (io file-id string)
   (assert (>= (rados_write_full io
-                                file-id string (length (string-to-octets string)))
+                                file-id string (length (string-to-octets string :external-format :utf8)))
               0)))
 
 (defun main ()
