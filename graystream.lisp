@@ -1,6 +1,6 @@
 (in-package :cl-rados)
 
-(defclass ceph-input-stream (fundamental-binary-input-stream fundamental-character-input-stream)
+(defclass ceph-stream ()
   ((file-pos :initarg :file-pos
              :initform 0
              :accessor file-pos)
@@ -8,11 +8,22 @@
             :initform (error "please specify ceph-id to read from")
             :accessor ceph-id)
    (ioctx :initarg :ioctx
-           :initform (error "please specify io-context")
-           :accessor ioctx)
-   (external-format :initarg :external-format
+          :initform (error "please specify io-context")
+          :accessor ioctx)))
+
+(defclass ceph-input-stream (ceph-stream)
+  ())
+
+(defclass ceph-binary-input-stream (fundamental-binary-input-stream ceph-input-stream)
+  ())
+
+(defclass ceph-character-stream (ceph-stream)
+  ((external-format :initarg :external-format
                     :initform :latin1
                     :accessor external-format)))
+
+(defclass ceph-character-input-stream (fundamental-character-input-stream ceph-character-stream ceph-input-stream)
+  ())
 
 (defcvar "errno" :int)
 (defun strerror ()
@@ -34,11 +45,11 @@
       (incf (file-pos stream))
       (mem-ref *buf :uchar))))
 
-(defmethod stream-read-sequence ((sequence simple-vector)
-                                                      (stream ceph-input-stream)
-                                 start end &key &allow-other-keys)
-  (loop for i below (length sequence)
-     do (setf (aref sequence i) (stream-read-byte stream))))
+;; (defmethod stream-read-sequence ((sequence simple-vector)
+;;                                                       (stream ceph-input-stream)
+;;                                  start end &key &allow-other-keys)
+;;   (loop for i from start to end
+;;      do (setf (aref sequence i) (stream-read-byte stream))))
 
 (define-condition rados-external-format-encoding-error (simple-condition)
    ((message :initarg :message :accessor rados-external-format-encoding-error)))
@@ -46,7 +57,7 @@
 ;; (defmethod print-object (object rados-external-format-encoding-error)
 ;;   "monkey!")
 
-(defmethod stream-read-char ((stream ceph-input-stream))
+(defmethod stream-read-char ((stream ceph-character-input-stream))
   (let ((buf (make-array 0 :adjustable t :fill-pointer t)))
     (loop for i below 4
        do
@@ -62,3 +73,12 @@
                       :format-arguments (list (external-format stream) err)))
              (end-of-file ()
                (return-from stream-read-char :eof)))))))
+
+(defclass ceph-output-stream (ceph-stream)
+  ())
+
+(defclass ceph-binary-output-stream (ceph-stream fundamental-character-output-stream)
+  ())
+
+(defclass ceph-character-output-stream (ceph-character-stream fundamental-character-output-stream)
+  ())
