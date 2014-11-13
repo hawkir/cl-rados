@@ -18,7 +18,7 @@
 (defun strerror ()
    (foreign-funcall "strerror" :int *errno* :string))
 
-(define-condition rados-error ()
+(define-condition librados-error (error)
   ((text :initarg :text :accessor text
          :initform (strerror))))
 
@@ -27,7 +27,7 @@
     (let ((bytes-read (rados_read (ioctx stream) (ceph-id stream)
                                   *buf 1 (file-pos stream))))
       (if (< bytes-read 0)
-          (error 'rados-error :stream stream))
+          (error 'librados-error :stream stream))
       (if (= bytes-read 0)
           (error 'end-of-file :text "hit end of file"
                  :stream stream))
@@ -40,19 +40,25 @@
   (loop for i below (length sequence)
      do (setf (aref sequence i) (stream-read-byte stream))))
 
+(define-condition rados-external-format-encoding-error (simple-condition)
+   ((message :initarg :message :accessor rados-external-format-encoding-error)))
+
+;; (defmethod print-object (object rados-external-format-encoding-error)
+;;   "monkey!")
+
 (defmethod stream-read-char ((stream ceph-input-stream))
   (let ((buf (make-array 0 :adjustable t :fill-pointer t)))
-    (block get-char
-      (loop for i below 4
-         do
-           (if (handler-case
-                   (progn
-                     (vector-push-extend (stream-read-byte stream) buf)
-                   (octets-to-string buf :external-format (external-format stream)))
-                 (external-format-encoding-error ()
-                   nil)
-                 (end-of-file ()
-                   (return-from stream-read-char :eof)))
-               (return-from get-char))))
-    (coerce (octets-to-string buf :external-format (external-format stream)) 'character)))
-
+    (loop for i below 4
+       do
+         (return-from stream-read-char
+           (handler-case
+               (progn
+                 (vector-push-extend (stream-read-byte stream) buf)
+                 (coerce (octets-to-string buf :external-format (external-format stream)) 'character))
+             (external-format-encoding-error (err)
+               (print stream)
+               (error 'rados-external-format-encoding-error
+                      :format-control "bad data encountered in stream whilst trying to decode as ~A because:~%~A"
+                      :format-arguments (list (external-format stream) err)))
+             (end-of-file ()
+               (return-from stream-read-char :eof)))))))

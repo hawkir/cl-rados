@@ -47,7 +47,7 @@
                      (assert (>= num-bytes 0))
                      (incf pos num-bytes)
                      (loop for i below num-bytes
-                        do (write-byte (print (mem-aref *res :uchar i)) dumpfile))
+                        do (write-byte (mem-aref *res :uchar i) dumpfile))
                      num-bytes)
            until (= 0 n))
            ;;uncomment this to get a summary of the bytes read in each pass
@@ -88,14 +88,17 @@
                            (concatenate 'string "/home/rick/ceph-test/" ceph-id)
                            :chunk-size 1000)))
 
-(defun binary-garbage-loopback (ceph-id)
+(defun binary-garbage-loopback (ceph-id &optional (num-bytes 50000000))
   (with-rados (cluster io
                        :id "platform"
                        :keyring "/etc/ceph/ceph.client.admin.keyring"
                        :conf-file "/home/rick/Downloads/ceph.conf"
                        :pool-name "platform")
     ;; (write-string-to-ceph io "greeting" "foobarbaz")
-    (write-octets-to-ceph io ceph-id (make-array 256 :initial-contents (loop for i from 0 to 255 collect i)))
-    (dump-ceph-obj-to-file io ceph-id
+    (write-octets-to-ceph io ceph-id (make-array num-bytes
+                                                 :initial-contents (loop for i from 1 to num-bytes
+                                                                      collect (random 256))))
+    (print "made junk")
+    (time (dump-ceph-obj-to-file io ceph-id
                            (concatenate 'string "/home/rick/ceph-test/" ceph-id)
-                           :chunk-size 2)))
+                           :chunk-size 100000))))
