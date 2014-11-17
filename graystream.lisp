@@ -77,8 +77,23 @@
 (defclass ceph-output-stream (ceph-stream)
   ())
 
-(defclass ceph-binary-output-stream (ceph-stream fundamental-character-output-stream)
+(defclass ceph-binary-output-stream (ceph-output-stream fundamental-binary-output-stream)
   ())
 
-(defclass ceph-character-output-stream (ceph-character-stream fundamental-character-output-stream)
+(defclass ceph-character-output-stream (ceph-output-stream ceph-character-stream fundamental-character-output-stream)
   ())
+
+(defmethod stream-write-byte ((stream ceph-output-stream) integer)
+  (with-foreign-object (foreign-integer :uchar)
+    (setf (mem-ref foreign-integer :uchar) integer)
+    (assert (>= (rados_write (ioctx stream) (ceph-id stream) foreign-integer 1 (file-pos stream))
+                0))
+    (incf (file-pos stream))))
+
+(defmethod stream-write-char ((stream ceph-character-output-stream) char)
+  (let ((octets (string-to-octets (string char)
+                                  :external-format (external-format stream)
+                                  :start 0 :end 1)))
+    (loop for i below (length octets)
+       do (print (aref octets i))
+         (stream-write-byte stream (aref octets i)))))
