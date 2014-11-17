@@ -12,19 +12,22 @@
                                                 *completion)))
       completion)))
 
+(defvar *default-buffer-size* 20000)
+
 (defclass ceph-stream ()
   ((file-pos :initarg :file-pos
              :initform 0
              :accessor file-pos)
+   (buffer :initform (make-array *default-buffer-size*
+                                 :element-type '(unsigned-byte 8)
+                                 :fill-pointer 0)
+           :accessor buffer)
    (ceph-id :initarg :ceph-id
             :initform (error "please specify ceph-id to read from")
             :accessor ceph-id)
    (ioctx :initarg :ioctx
           :initform (error "please specify io-context")
-          :accessor ioctx)
-   (completion :initarg :completion
-               :initform (make-completion)
-               :accessor completion)))
+          :accessor ioctx)))
 
 (defclass ceph-input-stream (ceph-stream)
   ())
@@ -48,17 +51,33 @@
   ((text :initarg :text :accessor text
          :initform (strerror))))
 
+(defmethod stream-fill-buffer ((stream ceph-input-stream))
+  (let* ((buffer (buffer stream))
+         (chunk-size *default-buffer-size*))
+    (with-foreign-object (*res :uchar chunk-size)
+      (let ((bytes-read (rados_read (ioctx stream)
+                                        (ceph-id stream)
+                                        *res
+                                        chunk-size
+                                        (file-pos stream))))
+        (if (< bytes-read 0)
+            (error 'librados-error :stream stream))
+        (setf (fill-pointer buffer) bytes-read)
+        (loop for i below bytes-read
+           do (setf (aref (buffer stream) (- (- bytes-read 1) i))
+                    (mem-aref *res :uchar i)))
+        bytes-read))))
+
 (defmethod stream-read-byte ((stream ceph-input-stream))
-  (with-foreign-object (*buf :uchar)
-    (let ((bytes-read (rados_read (ioctx stream) (ceph-id stream)
-                                  *buf 1 (file-pos stream))))
-      (if (< bytes-read 0)
-          (error 'librados-error :stream stream))
-      (if (= bytes-read 0)
-          (error 'end-of-file :text "hit end of file"
-                 :stream stream))
-      (incf (file-pos stream))
-      (mem-ref *buf :uchar))))
+  (let ((byte (or (ignore-errors (vector-pop (buffer stream)))
+                  (progn
+                    (stream-fill-buffer stream)
+                    (vector-pop (buffer stream))))))
+    (if byte
+        (incf (file-pos stream))
+        (error 'end-of-file :text "hit end of file"
+               :stream stream))
+    byte))
 
 ;; (defmethod stream-read-sequence ((sequence simple-vector)
 ;;                                                       (stream ceph-input-stream)
@@ -74,7 +93,8 @@
 
 (defmethod stream-read-char ((stream ceph-character-input-stream))
   (let ((buf (make-array 0 :adjustable t :fill-pointer t)))
-    (loop for i below 4
+
+   (loop for i below 4
        do
          (return-from stream-read-char
            (handler-case
