@@ -1,5 +1,17 @@
 (in-package :cl-rados)
 
+(defun make-completion ()
+  (with-foreign-object
+      (*completion :pointer)
+    (let ((completion (foreign-alloc
+                       :pointer)))
+      (setf (mem-ref *completion :pointer) completion)
+      (assert (>= 0 (rados_aio_create_completion (null-pointer)
+                                                (null-pointer)
+                                                (null-pointer)
+                                                *completion)))
+      completion)))
+
 (defclass ceph-stream ()
   ((file-pos :initarg :file-pos
              :initform 0
@@ -9,7 +21,10 @@
             :accessor ceph-id)
    (ioctx :initarg :ioctx
           :initform (error "please specify io-context")
-          :accessor ioctx)))
+          :accessor ioctx)
+   (completion :initarg :completion
+               :initform (make-completion)
+               :accessor completion)))
 
 (defclass ceph-input-stream (ceph-stream)
   ())
@@ -95,4 +110,31 @@
                                   :external-format (external-format stream)
                                   :start 0 :end 1)))
     (loop for i below (length octets)
-       do(stream-write-byte stream (aref octets i)))))
+       do (stream-write-byte stream (aref octets i)))))
+
+;; (defmethod stream-finish-output ((stream ceph-output-stream))
+;;   (rados_aio_wait_for_complete (completion stream))
+;;   (rados_aio_wait_for_safe (completion stream))
+;;   (rados_aio_release (completion stream)))
+
+
+(defmethod stream-write-sequence ((stream ceph-output-stream) sequence start end &rest rest)
+  (declare (ignore rest))
+  (if (null end)
+      (setf end (length sequence)))
+  (let ((octets (make-array (length sequence)
+                            :element-type '(unsigned-byte 8)
+                            :initial-contents sequence)))
+    (print octets)
+    (with-pointer-to-vector-data (foreign-octets octets)
+      (print foreign-octets)
+      (incf-pointer foreign-octets start)
+      (print (mem-ref foreign-octets :uchar ))
+      (assert (= (rados_write (ioctx stream) (ceph-id stream) foreign-octets
+                              (- end start) (+ start (file-pos stream)))
+                 0))
+      (incf (slot-value stream 'file-pos) (- end start)))
+    sequence))
+
+(defmethod stream-write-sequence ((stream ceph-character-output-stream) sequence start end &rest rest)
+  (apply #'call-next-method `(,stream ,(string-to-octets sequence) ,start ,end ,@rest)))
