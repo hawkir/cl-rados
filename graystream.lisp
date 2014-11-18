@@ -12,19 +12,19 @@
 ;;                                   :start start
 ;;                                   :end end))
 
-(defun make-completion ()
-  (with-foreign-object
-      (*completion :pointer)
-    (let ((completion (foreign-alloc
-                       :pointer)))
-      (setf (mem-ref *completion :pointer) completion)
-      (assert (>= 0 (rados_aio_create_completion (null-pointer)
-                                                (null-pointer)
-                                                (null-pointer)
-                                                *completion)))
-      completion)))
+;; (defun make-completion ()
+;;   (with-foreign-object
+;;       (*completion :pointer)
+;;     (let ((completion (foreign-alloc
+;;                        :pointer)))
+;;       (setf (mem-ref *completion :pointer) completion)
+;;       (assert (>= 0 (rados_aio_create_completion (null-pointer)
+;;                                                 (null-pointer)
+;;                                                 (null-pointer)
+;;                                                 *completion)))
+;;       completion)))
 
-(defvar *default-buffer-size* 1000000)
+(defparameter *default-buffer-size* 20000)
 
 (defclass ceph-stream ()
   ((file-pos :initarg :file-pos
@@ -55,16 +55,6 @@
                                   :element-type 'character
                                   :fill-pointer 0)
             :accessor charbuf)))
-
-(defmethod fill-charbuf ((stream ceph-character-stream) new-contents)
-  (let ((buffer (charbuf stream))
-        (count (length new-contents)))
-    (setf (fill-pointer buffer) count)
-    (loop for i below count
-     do
-         (setf (aref buffer i)
-               (aref new-contents i)))
-    count))
 
 (defclass ceph-character-input-stream (fundamental-character-input-stream ceph-character-stream ceph-input-stream)
   ())
@@ -111,6 +101,37 @@
 ;;   (loop for i from start to end
 ;;      do (setf (aref sequence i) (stream-read-byte stream))))
 
+(defun fill-charbuf (buffer new-contents)
+  (let ((count (length new-contents)))
+    (setf (fill-pointer buffer) count)
+    (loop for i below count
+       do
+         (setf (aref buffer i)
+               (aref new-contents i)))
+    count))
+
+(defmethod stream-fill-charbuf ((stream ceph-character-stream))
+  (let ((byte-buf (make-array *default-buffer-size*
+                              :element-type '(unsigned-byte 8)
+                              :fill-pointer 0)))
+    (loop repeat (- *default-buffer-size* 4)
+         do (vector-push (stream-read-byte stream) byte-buf))
+    (loop repeat 4
+       do
+         (return-from stream-fill-charbuf
+           (fill-charbuf (charbuf stream)
+                     (handler-case
+                         (progn
+                           (vector-push (stream-read-byte stream) byte-buf)
+                           (coerce (octets-to-string byte-buf :external-format (external-format stream)) 'character))
+                       (external-format-encoding-error (err)
+                         (print stream)
+                         (error 'rados-external-format-encoding-error
+                                :format-control "bad data encountered in stream whilst trying to decode as ~a because:~%~a"
+                                :format-arguments (list (external-format stream) err)))
+                       (end-of-file ()
+                         (return-from stream-fill-charbuf :eof))))))))
+
 (define-condition rados-external-format-encoding-error (simple-condition)
    ((message :initarg :message :accessor rados-external-format-encoding-error)))
 
@@ -129,7 +150,7 @@
              (external-format-encoding-error (err)
                (print stream)
                (error 'rados-external-format-encoding-error
-                      :format-control "bad data encountered in stream whilst trying to decode as ~A because:~%~A"
+                      :format-control "bad data encountered in stream whilst trying to decode as ~a because:~%~a"
                       :format-arguments (list (external-format stream) err)))
              (end-of-file ()
                (return-from stream-read-char :eof)))))))
@@ -162,19 +183,19 @@
         (stream-drain-buffer stream))
     (vector-push integer buffer)))
 
-(defmethod stream-drain-char-buffer ((stream ceph-character-output-stream))
-  (let ((octets (string-to-octets (charbuf stream)
-                                  :external-format (external-format stream))))
-    (print octets)
-    (loop for i below (length octets)
-       do (stream-write-byte stream (aref octets i)))))
+(defmethod stream-drain-charbuf ((stream ceph-character-output-stream))
+  (let ((buffer (charbuf stream)))
+    (let ((octets (string-to-octets buffer
+                                    :external-format (external-format stream))))
+      (loop for i below (length octets)
+         do (stream-write-byte stream (aref octets i)))
+      (setf (fill-pointer buffer) 0))))
 
 (defmethod stream-write-char ((stream ceph-character-output-stream) char)
-  (let ((octets (string-to-octets (string char)
-                                  :external-format (external-format stream)
-                                  :start 0 :end 1)))
-    (loop for i below (length octets)
-       do (stream-write-byte stream (aref octets i)))))
+  (let ((buffer (charbuf stream)))
+    (if (= *default-buffer-size* (fill-pointer buffer))
+        (stream-drain-charbuf stream))
+    (vector-push char buffer)))
 
 ;; (defmethod stream-finish-output ((stream ceph-output-stream))
 ;;   (rados_aio_wait_for_complete (completion stream))
@@ -182,19 +203,19 @@
 ;;   (rados_aio_release (completion stream)))
 
 
-(defmethod stream-write-sequence ((stream ceph-output-stream) octets start end &rest rest)
-  (declare (ignore rest))
-  (if (null end)
-      (setf end (length octets)))
-  (with-pointer-to-vector-data (foreign-octets octets)
-    (print foreign-octets)
-    (incf-pointer foreign-octets start)
-    (print (mem-ref foreign-octets :uchar ))
-    (assert (= (rados_write (ioctx stream) (ceph-id stream) foreign-octets
-                            (- end start) (+ start (file-pos stream)))
-               0))
-    (incf (slot-value stream 'file-pos) (- end start)))
-  octets)
+;; (defmethod stream-write-sequence ((stream ceph-output-stream) octets start end &rest rest)
+;;   (declare (ignore rest))
+;;   (if (null end)
+;;       (setf end (length octets)))
+;;   (with-pointer-to-vector-data (foreign-octets octets)
+;;     (print foreign-octets)
+;;     (incf-pointer foreign-octets start)
+;;     (print (mem-ref foreign-octets :uchar ))
+;;     (assert (= (rados_write (ioctx stream) (ceph-id stream) foreign-octets
+;;                             (- end start) (+ start (file-pos stream)))
+;;                0))
+;;     (incf (slot-value stream 'file-pos) (- end start)))
+;;   octets)
 
 (defmethod stream-write-sequence ((stream ceph-binary-output-stream) sequence start end &rest rest)
   (apply #'call-next-method `(,stream ,(make-array (length sequence)
