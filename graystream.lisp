@@ -1,5 +1,17 @@
 (in-package :cl-rados)
 
+
+;; (defun string-to-octets (string &key (external-format :latin1) (start 0) (end (length string)))
+;;   (babel:string-to-octets string :encoding external-format
+;;                           :start start
+;;                           :end end))
+
+;; (defun octets-to-string (sequence &key (external-format :latin1) (start 0) (end (length sequence)))
+;;   (babel:octets-to-string sequence
+;;                                   :encoding external-format
+;;                                   :start start
+;;                                   :end end))
+
 (defun make-completion ()
   (with-foreign-object
       (*completion :pointer)
@@ -12,7 +24,7 @@
                                                 *completion)))
       completion)))
 
-(defvar *default-buffer-size* 20000)
+(defvar *default-buffer-size* 1000000)
 
 (defclass ceph-stream ()
   ((file-pos :initarg :file-pos
@@ -65,21 +77,19 @@
         (setf (fill-pointer buffer) bytes-read)
         (loop for i below bytes-read
            do (setf (aref (buffer stream) (- (- bytes-read 1) i))
-                    (mem-aref *res :uchar i)))
-        bytes-read))))
+                    (mem-aref *res :uchar i)))))))
 
 (defmethod stream-read-byte ((stream ceph-input-stream))
-  (let ((byte (handler-case
-                  (handler-case
-                      (vector-pop (buffer stream))
-                    (error ()
-                      (stream-fill-buffer stream)
-                      (vector-pop (buffer stream))))
-                (error ()
-                  (error 'end-of-file :text "hit end of file"
-                       :stream stream)))))
-    (incf (file-pos stream))
-    byte))
+  (let ((buffer (buffer stream)))
+    (if (= 0 (fill-pointer buffer))
+        (stream-fill-buffer stream))
+    (handler-case
+        (let ((byte (vector-pop buffer)))
+          (incf (file-pos stream))
+          byte)
+      (error ()
+        (error 'end-of-file :text "hit end of file"
+               :stream stream)))))
 
 ;; (defmethod stream-read-sequence ((sequence simple-vector)
 ;;                                                       (stream ceph-input-stream)
@@ -95,8 +105,7 @@
 
 (defmethod stream-read-char ((stream ceph-character-input-stream))
   (let ((buf (make-array 0 :adjustable t :fill-pointer t)))
-
-   (loop for i below 4
+    (loop repeat 4
        do
          (return-from stream-read-char
            (handler-case
