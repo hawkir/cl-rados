@@ -69,14 +69,16 @@
         bytes-read))))
 
 (defmethod stream-read-byte ((stream ceph-input-stream))
-  (let ((byte (or (ignore-errors (vector-pop (buffer stream)))
-                  (progn
-                    (stream-fill-buffer stream)
-                    (vector-pop (buffer stream))))))
-    (if byte
-        (incf (file-pos stream))
-        (error 'end-of-file :text "hit end of file"
-               :stream stream))
+  (let ((byte (handler-case
+                  (handler-case
+                      (vector-pop (buffer stream))
+                    (error ()
+                      (stream-fill-buffer stream)
+                      (vector-pop (buffer stream))))
+                (error ()
+                  (error 'end-of-file :text "hit end of file"
+                       :stream stream)))))
+    (incf (file-pos stream))
     byte))
 
 ;; (defmethod stream-read-sequence ((sequence simple-vector)
@@ -118,12 +120,24 @@
 (defclass ceph-character-output-stream (ceph-output-stream ceph-character-stream fundamental-character-output-stream)
   ())
 
+(defmethod stream-drain-buffer ((stream ceph-output-stream))
+  (let* ((buffer (buffer stream))
+         (buflen (length buffer)))
+    (with-foreign-object (*buf :uchar buflen)
+      (loop for i below buflen
+         do (setf (mem-aref *buf :uchar i)
+                  (aref buffer i)))
+      (assert (= 0 (rados_write (ioctx stream) (ceph-id stream)
+                                *buf buflen (file-pos stream))))
+      (incf (file-pos stream) buflen)
+      (setf (fill-pointer buffer) 0)
+      buflen)))
+
 (defmethod stream-write-byte ((stream ceph-output-stream) integer)
-  (with-foreign-object (foreign-integer :uchar)
-    (setf (mem-ref foreign-integer :uchar) integer)
-    (assert (>= (rados_write (ioctx stream) (ceph-id stream) foreign-integer 1 (file-pos stream))
-                0))
-    (incf (slot-value stream 'file-pos ))))
+  (let ((buffer (buffer stream)))
+    (if (= *default-buffer-size* (length buffer))
+        (stream-drain-buffer stream))
+    (vector-push integer buffer)))
 
 (defmethod stream-write-char ((stream ceph-character-output-stream) char)
   (let ((octets (string-to-octets (string char)
