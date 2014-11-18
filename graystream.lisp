@@ -50,7 +50,21 @@
 (defclass ceph-character-stream (ceph-stream)
   ((external-format :initarg :external-format
                     :initform :latin1
-                    :accessor external-format)))
+                    :accessor external-format)
+   (charbuf :initform (make-array *default-buffer-size*
+                                  :element-type 'character
+                                  :fill-pointer 0)
+            :accessor charbuf)))
+
+(defmethod fill-charbuf ((stream ceph-character-stream) new-contents)
+  (let ((buffer (charbuf stream))
+        (count (length new-contents)))
+    (setf (fill-pointer buffer) count)
+    (loop for i below count
+     do
+         (setf (aref buffer i)
+               (aref new-contents i)))
+    count))
 
 (defclass ceph-character-input-stream (fundamental-character-input-stream ceph-character-stream ceph-input-stream)
   ())
@@ -147,6 +161,13 @@
     (if (= *default-buffer-size* (length buffer))
         (stream-drain-buffer stream))
     (vector-push integer buffer)))
+
+(defmethod stream-drain-char-buffer ((stream ceph-character-output-stream))
+  (let ((octets (string-to-octets (charbuf stream)
+                                  :external-format (external-format stream))))
+    (print octets)
+    (loop for i below (length octets)
+       do (stream-write-byte stream (aref octets i)))))
 
 (defmethod stream-write-char ((stream ceph-character-output-stream) char)
   (let ((octets (string-to-octets (string char)
