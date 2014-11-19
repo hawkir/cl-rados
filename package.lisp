@@ -5,4 +5,8 @@
   (:export :with-open-cephfile
            :ceph-open
            :with-rados
+           :write-string-to-ceph
+           :write-octets-to-ceph
            :dump-ceph-obj-to-file))
+(defpackage #:cl-rados.test
+  (:use #:cl #:cl-rados))

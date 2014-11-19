@@ -9,5 +9,6 @@
   :components ((:file "package")
                (:file "bindings")
                (:file "cl-rados")
-               (:file "graystream")))
+               (:file "graystream")
+               (:file "test")))
 

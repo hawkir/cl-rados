@@ -34,6 +34,20 @@
          (rados_shutdown ,g!cluster)))))
        
 
+(defun write-octets-to-ceph (io file-id octets)
+  (let ((bytes (make-array (length octets)
+                           :element-type '(unsigned-byte 8)
+                           :initial-contents octets)))
+    (with-pointer-to-vector-data (*bytes bytes)
+      (assert (>= (rados_write_full io
+                                    file-id *bytes (length bytes))
+                  0)))))
+
+(defun write-string-to-ceph (io file-id string)
+  (assert (>= (rados_write_full io
+                                file-id string (length (string-to-octets string :external-format :utf8)))
+              0)))
+
 (defun dump-ceph-obj-to-file (io file-id filespec &key (chunk-size 1000))
   (with-open-file (dumpfile filespec :direction :output
                             :if-exists :supersede
@@ -53,55 +67,6 @@
            ;;uncomment this to get a summary of the bytes read in each pass
            ;; collect n
         pos))))
-
-(defun write-octets-to-ceph (io file-id octets)
-  (let ((bytes (make-array (length octets)
-                           :element-type '(unsigned-byte 8)
-                           :initial-contents octets)))
-    (with-pointer-to-vector-data (*bytes bytes)
-      (assert (>= (rados_write_full io
-                                    file-id *bytes (length bytes))
-                  0)))))
-
-(defun write-string-to-ceph (io file-id string)
-  (assert (>= (rados_write_full io
-                                file-id string (length (string-to-octets string :external-format :utf8)))
-              0)))
-
-(defun main ()
-  (with-rados (io
-               :id "platform"
-               :keyring "/etc/ceph/ceph.client.admin.keyring"
-               :conf-file "/home/rick/Downloads/ceph.conf"
-               :pool-name "platform")
-    ;; (write-string-to-ceph io "greeting" "foobarbaz")
-    (dump-ceph-obj-to-file io "iTunes__iTunes_AU__80030548_0114_AU.txt.gz" "~/bar"  :chunk-size 3)))
-
-(defun test-read (ceph-id)
-  (with-rados (io
-               :id "platform"
-               :keyring "/etc/ceph/ceph.client.admin.keyring"
-               :conf-file "/home/rick/Downloads/ceph.conf"
-               :pool-name "platform")
-    ;; (write-string-to-ceph io "greeting" "foobarbaz")
-    (dump-ceph-obj-to-file io ceph-id
-                           (concatenate 'string "/home/rick/ceph-test/" ceph-id)
-                           :chunk-size 1000)))
-
-(defun binary-garbage-loopback (ceph-id &optional (num-bytes 50000000))
-  (with-rados (io
-               :id "platform"
-               :keyring "/etc/ceph/ceph.client.admin.keyring"
-               :conf-file "/home/rick/Downloads/ceph.conf"
-               :pool-name "platform")
-    ;; (write-string-to-ceph io "greeting" "foobarbaz")
-    (write-octets-to-ceph io ceph-id (make-array num-bytes
-                                                 :initial-contents (loop for i from 1 to num-bytes
-                                                                      collect (random 256))))
-    (print "made junk")
-    (time (dump-ceph-obj-to-file io ceph-id
-                           (concatenate 'string "/home/rick/ceph-test/" ceph-id)
-                           :chunk-size 100000))))
 
 (defun ceph-open-output (ceph-id ioctx &key (element-type 'base-char)
                                          if-exists if-does-not-exist (external-format :default))
