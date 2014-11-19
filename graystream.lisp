@@ -115,45 +115,35 @@
                               :element-type '(unsigned-byte 8)
                               :fill-pointer 0)))
     (loop repeat (- *default-buffer-size* 4)
-         do (vector-push (stream-read-byte stream) byte-buf))
+       do (vector-push (stream-read-byte stream) byte-buf))
     (loop repeat 4
        do
          (return-from stream-fill-charbuf
            (fill-charbuf (charbuf stream)
-                     (handler-case
-                         (progn
-                           (vector-push (stream-read-byte stream) byte-buf)
-                           (coerce (octets-to-string byte-buf :external-format (external-format stream)) 'character))
-                       (external-format-encoding-error (err)
-                         (print stream)
-                         (error 'rados-external-format-encoding-error
-                                :format-control "bad data encountered in stream whilst trying to decode as ~a because:~%~a"
-                                :format-arguments (list (external-format stream) err)))
-                       (end-of-file ()
-                         (return-from stream-fill-charbuf :eof))))))))
+                         (reverse (handler-case
+                                      (progn
+                                        (vector-push (stream-read-byte stream) byte-buf)
+                                        (octets-to-string byte-buf :external-format (external-format stream)))
+                                    (external-format-encoding-error (err)
+                                      (error 'rados-external-format-encoding-error
+                                             :format-control "bad data encountered in stream whilst trying to decode as ~a because:~%~a"
+                                             :format-arguments (list (external-format stream) err)))
+                                    (end-of-file ()
+                                      (return-from stream-fill-charbuf :eof)))))))))
 
 (define-condition rados-external-format-encoding-error (simple-condition)
    ((message :initarg :message :accessor rados-external-format-encoding-error)))
 
-;; (defmethod print-object (object rados-external-format-encoding-error)
-;;   "monkey!")
-
 (defmethod stream-read-char ((stream ceph-character-input-stream))
-  (let ((buf (make-array 0 :adjustable t :fill-pointer t)))
-    (loop repeat 4
-       do
-         (return-from stream-read-char
-           (handler-case
-               (progn
-                 (vector-push-extend (stream-read-byte stream) buf)
-                 (coerce (octets-to-string buf :external-format (external-format stream)) 'character))
-             (external-format-encoding-error (err)
-               (print stream)
-               (error 'rados-external-format-encoding-error
-                      :format-control "bad data encountered in stream whilst trying to decode as ~a because:~%~a"
-                      :format-arguments (list (external-format stream) err)))
-             (end-of-file ()
-               (return-from stream-read-char :eof)))))))
+  (let ((buffer (charbuf stream)))
+    (if (= 0 (fill-pointer buffer))
+        (stream-fill-charbuf stream))
+    (handler-case
+        (let ((char (vector-pop buffer)))
+          (incf (file-pos stream))
+          char)
+      (end-of-file ()
+        (return-from stream-read-char :eof)))))
 
 (defclass ceph-output-stream (ceph-stream)
   ())
