@@ -115,6 +115,9 @@
       (end-of-file ()
         (return-from stream-read-char :eof)))))
 
+(defmethod stream-unread-char ((stream ceph-character-input-stream) char)
+  (vector-push-extend char (charbuf stream)))
+
 (defclass ceph-output-stream (ceph-stream)
   ())
 
