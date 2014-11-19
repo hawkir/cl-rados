@@ -6,24 +6,24 @@
 (load-foreign-library "librados.so")
 
 
-(defmacro! with-rados ((cluster io &key id keyring conf-file pool-name) &body body)
+(defmacro! with-rados ((io &key id keyring conf-file pool-name) &body body)
   (assert (and id keyring conf-file pool-name))
   `(with-foreign-object (,g!*cluster :pointer)
      (assert (>= (rados_create ,g!*cluster ,id) 0))
-     (let ((,cluster (mem-ref ,g!*cluster :pointer)))
+     (let ((,g!cluster (mem-ref ,g!*cluster :pointer)))
        (unwind-protect
             (progn 
-              (assert (>= (rados_conf_set ,cluster
+              (assert (>= (rados_conf_set ,g!cluster
                                           "keyring"
                                           ,keyring)
                           0))
-              (assert (>= (rados_conf_read_file ,cluster
+              (assert (>= (rados_conf_read_file ,g!cluster
                                                 ,conf-file)
                           0))
-              (assert (>= (rados_connect ,cluster)))
+              (assert (>= (rados_connect ,g!cluster)))
               (with-foreign-object (,g!*io :pointer)
                 (progn
-                  (assert (>= (rados_ioctx_create ,cluster
+                  (assert (>= (rados_ioctx_create ,g!cluster
                                                   ,pool-name
                                                   ,g!*io)
                               0))
@@ -31,7 +31,7 @@
                     (unwind-protect
                          (progn ,@body)
                       (rados_ioctx_destroy ,io ))))))
-         (rados_shutdown ,cluster)))))
+         (rados_shutdown ,g!cluster)))))
        
 
 (defun dump-ceph-obj-to-file (io file-id filespec &key (chunk-size 1000))
@@ -69,31 +69,31 @@
               0)))
 
 (defun main ()
-  (with-rados (cluster io
-                       :id "platform"
-                       :keyring "/etc/ceph/ceph.client.admin.keyring"
-                       :conf-file "/home/rick/Downloads/ceph.conf"
-                       :pool-name "platform")
+  (with-rados (io
+               :id "platform"
+               :keyring "/etc/ceph/ceph.client.admin.keyring"
+               :conf-file "/home/rick/Downloads/ceph.conf"
+               :pool-name "platform")
     ;; (write-string-to-ceph io "greeting" "foobarbaz")
     (dump-ceph-obj-to-file io "iTunes__iTunes_AU__80030548_0114_AU.txt.gz" "~/bar"  :chunk-size 3)))
 
 (defun test-read (ceph-id)
-  (with-rados (cluster io
-                       :id "platform"
-                       :keyring "/etc/ceph/ceph.client.admin.keyring"
-                       :conf-file "/home/rick/Downloads/ceph.conf"
-                       :pool-name "platform")
+  (with-rados (io
+               :id "platform"
+               :keyring "/etc/ceph/ceph.client.admin.keyring"
+               :conf-file "/home/rick/Downloads/ceph.conf"
+               :pool-name "platform")
     ;; (write-string-to-ceph io "greeting" "foobarbaz")
     (dump-ceph-obj-to-file io ceph-id
                            (concatenate 'string "/home/rick/ceph-test/" ceph-id)
                            :chunk-size 1000)))
 
 (defun binary-garbage-loopback (ceph-id &optional (num-bytes 50000000))
-  (with-rados (cluster io
-                       :id "platform"
-                       :keyring "/etc/ceph/ceph.client.admin.keyring"
-                       :conf-file "/home/rick/Downloads/ceph.conf"
-                       :pool-name "platform")
+  (with-rados (io
+               :id "platform"
+               :keyring "/etc/ceph/ceph.client.admin.keyring"
+               :conf-file "/home/rick/Downloads/ceph.conf"
+               :pool-name "platform")
     ;; (write-string-to-ceph io "greeting" "foobarbaz")
     (write-octets-to-ceph io ceph-id (make-array num-bytes
                                                  :initial-contents (loop for i from 1 to num-bytes
@@ -102,3 +102,59 @@
     (time (dump-ceph-obj-to-file io ceph-id
                            (concatenate 'string "/home/rick/ceph-test/" ceph-id)
                            :chunk-size 100000))))
+
+(defun ceph-open-output (ceph-id ioctx &key (element-type 'base-char)
+                                         if-exists if-does-not-exist (external-format :default))
+  (declare (ignore if-exists if-does-not-exist))
+  (cond
+    ((subtypep element-type 'base-char) (make-instance 'ceph-character-output-stream
+                                                        :external-format external-format
+                                                        :ioctx ioctx
+                                                        :ceph-id ceph-id))
+    ((subtypep element-type 'integer) (make-instance 'ceph-binary-output-stream
+                                                      :external-format external-format
+                                                      :ioctx ioctx
+                                                      :ceph-id ceph-id))
+    (t (error "unknown type ~S supplied to ceph-open-output" element-type))))
+    
+        
+
+(defun ceph-open-input (ceph-id ioctx &key (element-type 'base-char) (external-format :utf8))
+  (cond
+    ((subtypep element-type 'base-char) (make-instance 'ceph-character-input-stream
+                                                        :external-format external-format
+                                                        :ioctx ioctx
+                                                        :ceph-id ceph-id))
+    ((subtypep element-type 'integer) (make-instance 'ceph-binary-input-stream
+                                                      :external-format external-format
+                                                      :ioctx ioctx
+                                                      :ceph-id ceph-id))
+    (t (error "unknown type ~S supplied to ceph-open-output" element-type))))
+
+
+(defun ceph-open (ceph-id ioctx &key (direction :input) (element-type 'base-char)
+                             if-exists if-does-not-exist (external-format :utf8))
+  (case direction
+    (:output (ceph-open-output ceph-id ioctx :element-type element-type
+                               :if-exists if-exists
+                               :if-does-not-exist if-does-not-exist
+                               :external-format external-format))
+    (:input (ceph-open-input  ceph-id ioctx :element-type element-type
+                              :external-format  external-format))))
+
+
+(defmacro with-open-cephfile ((stream ceph-id ioctx &rest options &key
+                                      (direction :input)
+                                      (element-type 'base-char)
+                                      if-exists if-does-not-exist
+                                      (external-format :utf8))
+                              &body body)
+  `(let ((,stream (ceph-open ,ceph-id ,ioctx
+                             :direction ,direction
+                             :element-type ',element-type
+                             :if-exists ,if-exists
+                             :if-does-not-exist ,if-does-not-exist
+                             :external-format ,external-format ,@options)))
+     (unwind-protect
+          (progn ,@body)
+       (close ,stream))))
