@@ -215,3 +215,15 @@
       
 (defmethod stream-write-sequence ((stream ceph-character-output-stream) sequence start end &rest rest)
   (apply #'call-next-method `(,stream ,(string-to-octets sequence) ,start ,end ,@rest)))
+
+(defmethod stream-force-output ((stream ceph-binary-output-stream))
+  (stream-drain-buffer stream))
+
+(defmethod stream-force-output ((stream ceph-character-output-stream))
+  (stream-drain-charbuf stream)
+  (stream-drain-buffer stream))
+
+(defmethod close ((stream ceph-output-stream) &key abort)
+  (if (not abort)
+      (stream-force-output stream))
+  (call-next-method stream))
