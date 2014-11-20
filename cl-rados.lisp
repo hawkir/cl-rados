@@ -77,12 +77,10 @@
                                                         :ioctx ioctx
                                                         :ceph-id ceph-id))
     ((subtypep element-type 'integer) (make-instance 'ceph-binary-output-stream
-                                                      :external-format external-format
                                                       :ioctx ioctx
                                                       :ceph-id ceph-id))
     (t (error "unknown type ~S supplied to ceph-open-output" element-type))))
-    
-        
+
 
 (defun ceph-open-input (ceph-id ioctx &key (element-type 'base-char) (external-format :utf8))
   (cond
@@ -91,10 +89,9 @@
                                                         :ioctx ioctx
                                                         :ceph-id ceph-id))
     ((subtypep element-type 'integer) (make-instance 'ceph-binary-input-stream
-                                                      :external-format external-format
                                                       :ioctx ioctx
                                                       :ceph-id ceph-id))
-    (t (error "unknown type ~S supplied to ceph-open-output" element-type))))
+    (t (error "unknown type ~S supplied to ceph-open-input" element-type))))
 
 
 (defun ceph-open (ceph-id ioctx &key (direction :input) (element-type 'base-char)
@@ -110,13 +107,13 @@
 
 (defmacro with-open-cephfile ((stream ceph-id ioctx &rest options &key
                                       (direction :input)
-                                      (element-type 'base-char)
+                                      (element-type ''base-char)
                                       if-exists if-does-not-exist
                                       (external-format :utf8))
                               &body body)
   `(let ((,stream (ceph-open ,ceph-id ,ioctx
                              :direction ,direction
-                             :element-type ',element-type
+                             :element-type ,element-type
                              :if-exists ,if-exists
                              :if-does-not-exist ,if-does-not-exist
                              :external-format ,external-format ,@options)))

@@ -68,8 +68,7 @@
           (incf (file-pos stream))
           byte)
       (error ()
-        (error 'end-of-file :text "hit end of file"
-               :stream stream)))))
+        :eof))))
 
 (defun fill-charbuf (buffer new-contents)
   (let ((count (length new-contents)))
@@ -80,6 +79,13 @@
                (aref new-contents i)))
     count))
 
+(defun %stream-read-byte (stream)
+  (let ((byte (stream-read-byte stream)))
+    (if (eq byte :EOF)
+        (error 'end-of-file)
+        byte)))
+        
+
 (defmethod stream-fill-charbuf ((stream ceph-character-stream))
   (let ((byte-buf (make-array *default-buffer-size*
                               :element-type '(unsigned-byte 8)
@@ -87,14 +93,14 @@
     (handler-case
         (progn
           (loop repeat (- *default-buffer-size* 4)
-             do (vector-push (stream-read-byte stream) byte-buf))
+             do (vector-push (%stream-read-byte stream) byte-buf))
           (loop repeat 4
              do
                (return-from stream-fill-charbuf
                  (fill-charbuf (charbuf stream)
                                (reverse (handler-case
                                             (progn
-                                              (vector-push (stream-read-byte stream) byte-buf)
+                                              (vector-push (%stream-read-byte stream) byte-buf)
                                               (octets-to-string byte-buf :external-format (external-format stream)))
                                           (external-format-encoding-error (err)
                                             (error 'rados-external-format-encoding-error
