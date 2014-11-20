@@ -23,18 +23,6 @@
 (defclass ceph-binary-input-stream (fundamental-binary-input-stream ceph-input-stream)
   ())
 
-(defclass ceph-character-stream (ceph-stream)
-  ((external-format :initarg :external-format
-                    :initform :latin1
-                    :accessor external-format)
-   (charbuf :initform (make-array *default-buffer-size*
-                                  :element-type 'character
-                                  :fill-pointer 0)
-            :accessor charbuf)))
-
-(defclass ceph-character-input-stream (fundamental-character-input-stream ceph-character-stream ceph-input-stream)
-  ())
-
 (defcvar "errno" :int)
 (defun strerror ()
    (foreign-funcall "strerror" :int *errno* :string))
@@ -70,70 +58,10 @@
       (error ()
         :eof))))
 
-(defun fill-charbuf (buffer new-contents)
-  (let ((count (length new-contents)))
-    (setf (fill-pointer buffer) count)
-    (loop for i below count
-       do
-         (setf (aref buffer i)
-               (aref new-contents i)))
-    count))
-
-(defun %stream-read-byte (stream)
-  (let ((byte (stream-read-byte stream)))
-    (if (eq byte :EOF)
-        (error 'end-of-file)
-        byte)))
-        
-
-(defmethod stream-fill-charbuf ((stream ceph-character-stream))
-  (let ((byte-buf (make-array *default-buffer-size*
-                              :element-type '(unsigned-byte 8)
-                              :fill-pointer 0)))
-    (handler-case
-        (progn
-          (loop repeat (- *default-buffer-size* 4)
-             do (vector-push (%stream-read-byte stream) byte-buf))
-          (loop repeat 4
-             do
-               (return-from stream-fill-charbuf
-                 (fill-charbuf (charbuf stream)
-                               (reverse (handler-case
-                                            (progn
-                                              (vector-push (%stream-read-byte stream) byte-buf)
-                                              (octets-to-string byte-buf :external-format (external-format stream)))
-                                          (external-format-encoding-error (err)
-                                            (error 'rados-external-format-encoding-error
-                                                   :format-control "bad data encountered in stream whilst trying to decode as ~a because:~%~a"
-                                                   :format-arguments (list (external-format stream) err)))))))))
-      (end-of-file ()
-        (fill-charbuf (charbuf stream)
-                      (reverse (octets-to-string byte-buf :external-format (external-format stream))))))))
-    
-(define-condition rados-external-format-encoding-error (simple-condition)
-   ((message :initarg :message :accessor rados-external-format-encoding-error)))
-
-(defmethod stream-read-char ((stream ceph-character-input-stream))
-  (let ((buffer (charbuf stream)))
-    (if (= 0 (fill-pointer buffer))
-        (handler-case
-            (progn
-              (stream-fill-charbuf stream))
-          (end-of-file ())))
-    (if (= 0 (fill-pointer buffer))
-        :EOF
-        (vector-pop buffer))))
-
-(defmethod stream-unread-char ((stream ceph-character-input-stream) char)
-  (vector-push-extend char (charbuf stream)))
-
 (defclass ceph-output-stream (ceph-stream)
   ())
 
-(defclass ceph-binary-output-stream (ceph-output-stream fundamental-binary-output-stream)
-  ())
-
-(defclass ceph-character-output-stream (ceph-output-stream ceph-character-stream fundamental-character-output-stream)
+(defclass ceph-binary-output-stream (fundamental-binary-output-stream ceph-output-stream)
   ())
 
 (defmethod stream-drain-buffer ((stream ceph-output-stream))
@@ -155,34 +83,13 @@
         (stream-drain-buffer stream))
     (vector-push integer buffer)))
 
-(defmethod stream-drain-charbuf ((stream ceph-character-output-stream))
-  (let ((buffer (charbuf stream)))
-    (let ((octets (string-to-octets buffer
-                                    :external-format (external-format stream))))
-      (loop for i below (length octets)
-         do (stream-write-byte stream (aref octets i)))
-      (setf (fill-pointer buffer) 0))))
-
-(defmethod stream-write-char ((stream ceph-character-output-stream) char)
-  (let ((buffer (charbuf stream)))
-    (if (= *default-buffer-size* (fill-pointer buffer))
-        (stream-drain-charbuf stream))
-    (vector-push char buffer)))
-
 (defmethod stream-write-sequence ((stream ceph-binary-output-stream) sequence start end &rest rest)
   (apply #'call-next-method `(,stream ,(make-array (length sequence)
                                                    :element-type '(unsigned-byte 8)
                                                    :initial-contents sequence)
                                       ,start ,end ,@rest)))
       
-(defmethod stream-write-sequence ((stream ceph-character-output-stream) sequence start end &rest rest)
-  (apply #'call-next-method `(,stream ,(string-to-octets sequence) ,start ,end ,@rest)))
-
 (defmethod stream-force-output ((stream ceph-binary-output-stream))
-  (stream-drain-buffer stream))
-
-(defmethod stream-force-output ((stream ceph-character-output-stream))
-  (stream-drain-charbuf stream)
   (stream-drain-buffer stream))
 
 (defmethod close ((stream ceph-output-stream) &key abort)

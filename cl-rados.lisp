@@ -5,7 +5,6 @@
 ;;; "cl-rados" goes here. Hacks and glory await!
 (load-foreign-library "librados.so")
 
-
 (defmacro! with-rados ((io &key id keyring conf-file pool-name) &body body)
   (assert (and id keyring conf-file pool-name))
   `(with-foreign-object (,g!*cluster :pointer)
@@ -31,8 +30,7 @@
                     (unwind-protect
                          (progn ,@body)
                       (rados_ioctx_destroy ,io ))))))
-         (rados_shutdown ,g!cluster)))))
-       
+         (rados_shutdown ,g!cluster)))))       
 
 (defun write-octets-to-ceph (io file-id octets)
   (let ((bytes (make-array (length octets)
@@ -71,28 +69,24 @@
 (defun ceph-open-output (ceph-id ioctx &key (element-type 'base-char)
                                          if-exists if-does-not-exist (external-format :default))
   (declare (ignore if-exists if-does-not-exist))
-  (cond
-    ((subtypep element-type 'base-char) (make-instance 'ceph-character-output-stream
-                                                        :external-format external-format
-                                                        :ioctx ioctx
-                                                        :ceph-id ceph-id))
-    ((subtypep element-type 'integer) (make-instance 'ceph-binary-output-stream
-                                                      :ioctx ioctx
-                                                      :ceph-id ceph-id))
-    (t (error "unknown type ~S supplied to ceph-open-output" element-type))))
-
+  (let ((binary-stream (make-instance 'ceph-binary-output-stream
+                                      :ioctx ioctx
+                                      :ceph-id ceph-id)))
+    (cond
+      ((subtypep element-type 'base-char) (make-flexi-stream binary-stream
+                                                             :external-format external-format))
+      ((subtypep element-type 'integer) binary-stream)
+      (t (error "unknown type ~S supplied to ceph-open-output" element-type)))))
 
 (defun ceph-open-input (ceph-id ioctx &key (element-type 'base-char) (external-format :utf8))
-  (cond
-    ((subtypep element-type 'base-char) (make-instance 'ceph-character-input-stream
-                                                        :external-format external-format
-                                                        :ioctx ioctx
-                                                        :ceph-id ceph-id))
-    ((subtypep element-type 'integer) (make-instance 'ceph-binary-input-stream
-                                                      :ioctx ioctx
-                                                      :ceph-id ceph-id))
-    (t (error "unknown type ~S supplied to ceph-open-input" element-type))))
-
+  (let ((binary-stream  (make-instance 'ceph-binary-input-stream
+                                       :ioctx ioctx
+                                       :ceph-id ceph-id)))
+    (cond
+      ((subtypep element-type 'base-char) (make-flexi-stream binary-stream
+                                                             :external-format external-format))
+      ((subtypep element-type 'integer) binary-stream)
+      (t (error "unknown type ~S supplied to ceph-open-input" element-type)))))
 
 (defun ceph-open (ceph-id ioctx &key (direction :input) (element-type 'base-char)
                              if-exists if-does-not-exist (external-format :utf8))
@@ -103,7 +97,6 @@
                                :external-format external-format))
     (:input (ceph-open-input  ceph-id ioctx :element-type element-type
                               :external-format  external-format))))
-
 
 (defmacro with-open-cephfile ((stream ceph-id ioctx &rest options &key
                                       (direction :input)
