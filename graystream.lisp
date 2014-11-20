@@ -113,10 +113,7 @@
         (handler-case
             (progn
               (stream-fill-charbuf stream))
-          (end-of-file ()
-            (print (fill-pointer buffer))
-            (if (= 0 (fill-pointer buffer))
-                (return-from stream-read-char :eof)))))
+          (end-of-file ())))
     (if (= 0 (fill-pointer buffer))
         :EOF
         (vector-pop buffer))))
