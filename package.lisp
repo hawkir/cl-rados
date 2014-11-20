@@ -8,5 +8,6 @@
            :write-string-to-ceph
            :write-octets-to-ceph
            :dump-ceph-obj-to-file))
+
 (defpackage #:cl-rados.test
-  (:use #:cl #:cl-rados))
+  (:use #:cl #:cl-rados #:flexi-streams))
