@@ -86,7 +86,9 @@
     (cond
       ((subtypep element-type 'base-char) (make-flexi-stream binary-stream
                                                              :external-format external-format))
-      ((subtypep element-type 'integer) binary-stream)
+      ((or (subtypep element-type 'integer)
+           (subtypep element-type 'octet))
+       binary-stream)
       (t (error "unknown type ~S supplied to ceph-open-input" element-type)))))
 
 (defun ceph-open (ceph-id ioctx &key (direction :input) (element-type 'base-char)
@@ -114,3 +116,9 @@
      (unwind-protect
           (progn ,@body)
        (close ,stream))))
+
+(defun dump-file-to-ceph-obj (filename io ceph-id)
+  (with-open-file (filestream filename :element-type 'octet)
+    (with-open-cephfile (cephstream ceph-id io :direction :output :element-type 'octet)
+      (loop (write-byte (read-byte filestream)
+                        cephstream)))))

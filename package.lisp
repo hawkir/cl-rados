@@ -7,7 +7,8 @@
            :with-rados
            :write-string-to-ceph
            :write-octets-to-ceph
-           :dump-ceph-obj-to-file))
+           :dump-ceph-obj-to-file
+           :dump-file-to-ceph-obj))
 
 (defpackage #:cl-rados.test
   (:use #:cl #:cl-rados #:flexi-streams))

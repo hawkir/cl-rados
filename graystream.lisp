@@ -92,7 +92,7 @@
 (defmethod stream-force-output ((stream ceph-binary-output-stream))
   (stream-drain-buffer stream))
 
-(defmethod close ((stream ceph-output-stream) &key abort)
+(defmethod close ((stream ceph-binary-output-stream) &key abort)
   (if (not abort)
       (stream-force-output stream))
   (call-next-method stream))
