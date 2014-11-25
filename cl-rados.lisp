@@ -19,7 +19,8 @@
               (assert (>= (rados_conf_read_file ,g!cluster
                                                 ,conf-file)
                           0))
-              (assert (>= (rados_connect ,g!cluster)))
+              (assert (>= (rados_connect ,g!cluster)
+                          0))
               (with-foreign-object (,g!*io :pointer)
                 (progn
                   (assert (>= (rados_ioctx_create ,g!cluster
@@ -30,7 +31,7 @@
                     (unwind-protect
                          (progn ,@body)
                       (rados_ioctx_destroy ,io ))))))
-         (rados_shutdown ,g!cluster)))))       
+         (rados_shutdown ,g!cluster)))))
 
 (defun write-octets-to-ceph (io file-id octets)
   (let ((bytes (make-array (length octets)
