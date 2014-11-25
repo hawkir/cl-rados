@@ -4,7 +4,7 @@
   (with-rados (io
                :id "platform"
                :keyring "/etc/ceph/ceph.client.platform.keyring"
-               :conf-file "/home/rick/Downloads/ceph.conf"
+               :conf-file "/etc/ceph/ceph.platform.conf"
                :pool-name "platform")
     ;; (write-string-to-ceph io "greeting" "foobarbaz")
     (dump-ceph-obj-to-file io "iTunes__iTunes_AU__80030548_0114_AU.txt.gz" "~/bar"  :chunk-size 3)))
@@ -13,7 +13,7 @@
   (with-rados (io
                :id "platform"
                :keyring "/etc/ceph/ceph.client.platform.keyring"
-               :conf-file "/home/rick/Downloads/ceph.conf"
+               :conf-file "/etc/ceph/ceph.platform.conf"
                :pool-name "platform")
     ;; (write-string-to-ceph io "greeting" "foobarbaz")
     (dump-ceph-obj-to-file io ceph-id
@@ -24,7 +24,7 @@
   (with-rados (io
                :id "platform"
                :keyring "/etc/ceph/ceph.client.platform.keyring"
-               :conf-file "/home/rick/Downloads/ceph.conf"
+               :conf-file "/etc/ceph/ceph.platform.conf"
                :pool-name "platform")
     ;; (write-string-to-ceph io "greeting" "foobarbaz")
     (write-octets-to-ceph io ceph-id (make-array num-bytes
@@ -39,7 +39,7 @@
   (with-rados (io
                :id "platform"
                :keyring "/etc/ceph/ceph.client.platform.keyring"
-               :conf-file "/home/rick/Downloads/ceph.conf"
+               :conf-file "/etc/ceph/ceph.platform.conf"
                :pool-name "platform")
     (with-open-cephfile (cephout "test123" io :direction :output)
       (format cephout "monkey~%monkey~%"))
@@ -50,7 +50,7 @@
   (with-rados (io
                :id "platform"
                :keyring "/etc/ceph/ceph.client.platform.keyring"
-               :conf-file "/home/rick/Downloads/ceph.conf"
+               :conf-file "/etc/ceph/ceph.platform.conf"
                :pool-name "platform")
     (with-open-cephfile (gzstream "iTunes__iTunes_US__report__80030548_0914_US.txt.gz" io :direction :input :element-type 'octet)
       
