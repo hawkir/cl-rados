@@ -3,7 +3,7 @@
 (defun main ()
   (with-rados (io
                :id "platform"
-               :keyring "/etc/ceph/ceph.client.admin.keyring"
+               :keyring "/etc/ceph/ceph.client.platform.keyring"
                :conf-file "/home/rick/Downloads/ceph.conf"
                :pool-name "platform")
     ;; (write-string-to-ceph io "greeting" "foobarbaz")
@@ -12,7 +12,7 @@
 (defun test-read (ceph-id)
   (with-rados (io
                :id "platform"
-               :keyring "/etc/ceph/ceph.client.admin.keyring"
+               :keyring "/etc/ceph/ceph.client.platform.keyring"
                :conf-file "/home/rick/Downloads/ceph.conf"
                :pool-name "platform")
     ;; (write-string-to-ceph io "greeting" "foobarbaz")
@@ -23,7 +23,7 @@
 (defun binary-garbage-loopback (ceph-id &optional (num-bytes 50000000))
   (with-rados (io
                :id "platform"
-               :keyring "/etc/ceph/ceph.client.admin.keyring"
+               :keyring "/etc/ceph/ceph.client.platform.keyring"
                :conf-file "/home/rick/Downloads/ceph.conf"
                :pool-name "platform")
     ;; (write-string-to-ceph io "greeting" "foobarbaz")
@@ -38,7 +38,7 @@
 (defun monkey ()
   (with-rados (io
                :id "platform"
-               :keyring "/etc/ceph/ceph.client.admin.keyring"
+               :keyring "/etc/ceph/ceph.client.platform.keyring"
                :conf-file "/home/rick/Downloads/ceph.conf"
                :pool-name "platform")
     (with-open-cephfile (cephout "test123" io :direction :output)
@@ -49,7 +49,7 @@
 (defun gorilla ()
   (with-rados (io
                :id "platform"
-               :keyring "/etc/ceph/ceph.client.admin.keyring"
+               :keyring "/etc/ceph/ceph.client.platform.keyring"
                :conf-file "/home/rick/Downloads/ceph.conf"
                :pool-name "platform")
     (with-open-cephfile (gzstream "iTunes__iTunes_US__report__80030548_0914_US.txt.gz" io :direction :input :element-type 'octet)
