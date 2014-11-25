@@ -5,7 +5,7 @@
   :description "Describe cl-rados here"
   :author "Your Name <your.name@example.com>"
   :license "Specify license here"
-  :depends-on (#:babel #:flexi-streams #:trivial-gray-streams #:let-over-lambda #:cffi)
+  :depends-on (#:babel #:flexi-streams #:trivial-gray-streams #:let-over-lambda #:cffi #:chipz)
   :components ((:file "package")
                (:file "bindings")
                (:file "cl-rados")
