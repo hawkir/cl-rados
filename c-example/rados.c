@@ -5,19 +5,19 @@
 int main (int argc, char* argv []) {
   int err;
   rados_t cluster;
-  
+
   err = rados_create(&cluster, "platform");
   if (err < 0) {
     fprintf(stderr, "%s: cannot create a cluster handle: %s\n", argv[0], strerror(-err));
     exit(1);
   }
 
-  err = rados_conf_set(cluster, "keyring", "/etc/ceph/ceph.client.admin.keyring");
+  err = rados_conf_set(cluster, "keyring", "/etc/ceph/ceph.client.platform.keyring");
   if (err < 0) {
     fprintf(stderr, "%s: keyring failed because: %s\n", argv[0], strerror(-err));
     exit(1);
   }
-   
+
   err = rados_conf_read_file(cluster, "/home/rick/Downloads/ceph.conf");
   if (err < 0) {
     fprintf(stderr, "%s: cannot read config file: %s\n", argv[0], strerror(-err));
@@ -47,7 +47,7 @@ int main (int argc, char* argv []) {
   }
   char res[1000];
   err = rados_read(io, "greeting", res, 1000, 0);
-  
+
   if (err < 0) {
     fprintf(stderr, "%s: failed to read from pool %s: %s\n", argv[0], poolname, strerror(-err));
     rados_ioctx_destroy(io);
