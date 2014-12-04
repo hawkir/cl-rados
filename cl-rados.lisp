@@ -73,6 +73,7 @@
   (let ((binary-stream (make-instance 'ceph-binary-output-stream
                                       :ioctx ioctx
                                       :ceph-id ceph-id)))
+    (truncate-cephobj binary-stream 0)
     (cond
       ((subtypep element-type 'base-char) (make-flexi-stream binary-stream
                                                              :external-format external-format))

@@ -64,6 +64,9 @@
 (defclass ceph-binary-output-stream (fundamental-binary-output-stream ceph-output-stream)
   ())
 
+(defmethod truncate-cephobj ((stream ceph-output-stream) &optional (size 0))
+  (rados_trunc (ioctx stream) (ceph-id stream) size))
+
 (defmethod stream-drain-buffer ((stream ceph-output-stream))
   (let* ((buffer (buffer stream))
          (buflen (length buffer)))
