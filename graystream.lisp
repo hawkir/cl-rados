@@ -23,6 +23,9 @@
 (defclass ceph-binary-input-stream (fundamental-binary-input-stream ceph-input-stream)
   ())
 
+(defmethod stream-element-type ((stream ceph-binary-input-stream))
+  'octet)
+
 (defcvar "errno" :int)
 (defun strerror ()
    (foreign-funcall "strerror" :int *errno* :string))
