@@ -102,6 +102,9 @@
     (:input (ceph-open-input  ceph-id ioctx :element-type element-type
                               :external-format  external-format))))
 
+(defmethod stream-element-type ((stream ceph-binary-input-stream))
+  'octet)
+
 (defmacro with-open-cephfile ((stream ceph-id ioctx &rest options &key
                                       (direction :input)
                                       (element-type ''base-char)
