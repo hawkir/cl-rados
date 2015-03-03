@@ -32,7 +32,9 @@
 
 (define-condition librados-error (error)
   ((text :initarg :text :accessor text
-         :initform (strerror))))
+         :initform (strerror)))
+  (:report (lambda (e s)
+             (format s "librados error: ~A" (text e)))))
 
 (defmethod stream-fill-buffer ((stream ceph-input-stream))
   (let* ((buffer (buffer stream))
@@ -44,7 +46,9 @@
                                         chunk-size
                                         (file-pos stream))))
         (if (< bytes-read 0)
-            (error 'librados-error :stream stream))
+            (error 'librados-error
+                   :stream stream
+                   :text (format nil "could not read bytes from ceph object ~A" (ceph-id stream))))
         (setf (fill-pointer buffer) bytes-read)
         (loop for i below bytes-read
            do (setf (aref (buffer stream) (- (- bytes-read 1) i))
@@ -94,7 +98,7 @@
                                                    :element-type '(unsigned-byte 8)
                                                    :initial-contents sequence)
                                       ,start ,end ,@rest)))
-      
+
 (defmethod stream-force-output ((stream ceph-binary-output-stream))
   (stream-drain-buffer stream))
 
