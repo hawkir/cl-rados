@@ -65,6 +65,19 @@
       (error ()
         :eof))))
 
+(defmethod stream-unread-byte ((stream ceph-binary-input-stream) byte)
+  (declare (ignore byte))
+  (if (> (file-pos stream) 0)
+      (progn (setf (fill-pointer (buffer stream)) 0)
+             (decf (file-pos stream)))
+      (error 'librados-error
+             :stream stream
+             :text (format nil "Attempted to unread before start of file")))
+  nil)
+
+(defmethod stream-unread-char ((stream ceph-binary-input-stream) char)
+  (stream-unread-byte stream (char-int char)))
+
 (defclass ceph-output-stream (ceph-stream)
   ())
 
